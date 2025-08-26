@@ -1,0 +1,3 @@
+[submodule "apps/bonzo"]
+	path = apps/bonzo
+	url = https://github.com/Bonzo-Labs/bonzo-finance-contracts

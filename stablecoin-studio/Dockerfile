@@ -21,6 +21,7 @@ RUN npx hardhat compile
 
 # Setup Testing
 COPY . .
+RUN mv .env.local .env
 FROM builder AS runner
 
 # Exclude unnecessary production dependencies

@@ -35,8 +35,8 @@ export class SaucerSwapDeployer extends Deployer {
     const Factory = await ethers.getContractFactory("UniswapV2Factory");
     deployments.factory = await Factory.deploy(
       deployer.address,
-      ethers.parseEther("1"),
-      ethers.parseEther("10")
+      100, // 1 USD worth of tinycents
+      200 // 2 USD worth of tinycents
     );
     await deployments.factory.waitForDeployment();
     this.logger.success(`Factory deployed to: ${await deployments.factory.getAddress()}`);

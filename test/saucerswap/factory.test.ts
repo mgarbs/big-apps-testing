@@ -35,12 +35,13 @@ describe("SaucerSwap Factory", function () {
       expect(await factory.feeToSetter()).to.equal(deployer.address);
       expect(await factory.feeTo()).to.equal(ethers.ZeroAddress);
       expect(await factory.allPairsLength()).to.equal(0);
-      expect(await factory.pairCreateFee()).to.equal(ethers.parseEther("1"));
+      expect(await factory.pairCreateFee()).to.equal(ethers.parseEther("1")); // Default fee from contract
     });
 
     it("should have correct INIT_CODE_PAIR_HASH", async function () {
       const initCodeHash = await factory.INIT_CODE_PAIR_HASH();
-      expect(initCodeHash).to.be.properHex(66); // 0x + 64 chars
+      expect(initCodeHash).to.be.a('string');
+      expect(initCodeHash).to.match(/^0x[a-fA-F0-9]{64}$/); // Valid 32-byte hex hash
     });
   });
 

@@ -1,11 +1,11 @@
 {
   "network": "hederaTestnet",
   "version": "v1",
-  "timestamp": "2025-08-27T19:08:25.573Z",
+  "timestamp": "2025-08-27T19:15:58.458Z",
   "addresses": {
-    "whbar": "0x2772FA509D50B37e74429194586b1BA3fbBa0d46",
-    "factory": "0xc1901307Ec2989699d9305bDA3eEbA262fc19193",
-    "router": "0xA63fCa694741345e93380189cCbD8Bd5DA6F9748"
+    "whbar": "0xF81e73Ed896383900D484d628F17a52EC386971B",
+    "factory": "0x1bB9B3575447A754D41d86B6F29A62c61B3022AF",
+    "router": "0x57c8015C768Bfa8B70dC9E1a8579281700130581"
   },
   "app": "SaucerSwap"
 }

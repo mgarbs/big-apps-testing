@@ -1,104 +1,89 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity =0.6.12;
+pragma experimental ABIEncoderV2;
 
-import "../saucerswap/interfaces/IWHBAR.sol";
-import "../saucerswap/hedera/SafeHederaTokenService.sol";
+import '../saucerswap/hedera/SafeHederaTokenService.sol';
+import '../saucerswap/libraries/Bits.sol';
 
-contract WHBAR is IWHBAR, SafeHederaTokenService {
-    
-    string public name = "Wrapped HBAR";
-    string public symbol = "WHBAR";  
-    uint8 public decimals = 8;
-    
-    address public override token;
-    uint256 public totalWrapped;
-    mapping(address => uint256) public balanceOf;
-    mapping(address => mapping(address => uint256)) public allowance;
+contract WHBAR is SafeHederaTokenService {
 
-    event Deposit(address indexed dst, uint wad);
-    event Withdrawal(address indexed src, uint wad);
-    event Transfer(address indexed src, address indexed dst, uint wad);
-    event Approval(address indexed src, address indexed guy, uint wad);
+    using Bits for uint;
 
-    constructor(address /* _htsToken */) public {
-        token = address(this);
+    address public token;
+    event  Deposit(address indexed src, address indexed dst, uint wad);
+    event  Withdrawal(address indexed src, address indexed dst, uint wad);
+
+    constructor() public payable {
+
+        uint supplyKeyType;
+        IHederaTokenService.KeyValue memory supplyKeyValue;
+
+        supplyKeyType = supplyKeyType.setBit(4);
+        supplyKeyValue.contractId = address(this);
+
+        IHederaTokenService.TokenKey[] memory keys = new IHederaTokenService.TokenKey[](1);
+        keys[0] = IHederaTokenService.TokenKey (supplyKeyType, supplyKeyValue);
+
+        IHederaTokenService.Expiry memory expiry;
+        expiry.autoRenewAccount = address(this);
+        expiry.autoRenewPeriod = 8000000;
+
+        IHederaTokenService.HederaToken memory myToken;
+        myToken.name = "Wrapped Hbar";
+        myToken.symbol = "WHBAR";
+        myToken.treasury = address(this);
+        myToken.expiry = expiry;
+        myToken.tokenKeys = keys;
+
+        (int responseCode, address _token) =
+        HederaTokenService.createFungibleToken(myToken, 0, 8);
+
+        if (responseCode != HederaResponseCodes.SUCCESS) {
+            revert ();
+        }
+
+        token = _token;
     }
-
-
-    fallback() external payable {
-        deposit();
-    }
-
+    
     receive() external payable {
         deposit();
     }
 
-    function deposit() public payable override {
-        deposit(msg.sender, msg.sender);
-    }
-    
-    function deposit(address src, address dst) public payable override {
-        require(src == msg.sender, "WHBAR: INVALID_SENDER");
-        
-        if (msg.value == 0) {
-            return;
-        }
-        
-        balanceOf[dst] += msg.value;
-        totalWrapped += msg.value;
-        emit Deposit(dst, msg.value);
+    function deposit() public payable {
+        require(msg.value > 0, 'Sent zero hbar to this contract');
+
+        safeMintToken(token, msg.sender, msg.value, new bytes[](0));
+        safeTransferToken(token, address(this), msg.sender, msg.value);
+        emit Deposit(msg.sender, msg.sender, msg.value);
     }
 
-    function withdraw(uint256 wad) external override {
-        _withdraw(msg.sender, msg.sender, wad);
-    }
-    
-    function withdraw(address src, address dst, uint256 wad) external override {
-        _withdraw(src, dst, wad);
-    }
-    
-    function _withdraw(address src, address dst, uint256 wad) internal {
-        require(wad > 0, "WHBAR: ZERO_WITHDRAW");
-        require(src == msg.sender, "WHBAR: INVALID_SENDER");
-        require(totalWrapped >= wad, "WHBAR: INSUFFICIENT_WRAPPED");
-        require(balanceOf[src] >= wad, "WHBAR: INSUFFICIENT_BALANCE");
-        
-        balanceOf[src] -= wad;
-        totalWrapped -= wad;
-        payable(dst).transfer(wad);
-        
-        emit Withdrawal(src, wad);
+    function deposit(address src, address dst) public payable {
+        require(msg.value > 0, 'Sent zero hbar to this contract');
+
+        safeMintToken(token, src, msg.value, new bytes[](0));
+        safeTransferToken(token, address(this), dst, msg.value);
+        emit Deposit(src, dst, msg.value);
     }
 
-    function transfer(address dst, uint wad) external returns (bool) {
-        require(balanceOf[msg.sender] >= wad, "WHBAR: INSUFFICIENT_BALANCE");
-        balanceOf[msg.sender] -= wad;
-        balanceOf[dst] += wad;
-        emit Transfer(msg.sender, dst, wad);
-        return true;
+    function withdraw(address src, address dst, uint wad) public {
+        require(wad > 0, 'Attempted to withdraw zero hbar');
+
+        safeTransferToken(token, src, address(this), wad);
+        safeBurnToken(token, src, wad, new int64[](0));
+
+        (bool sent, ) = payable(dst).call{value: wad}("");
+        require(sent, "hbar could not be sent");
+        emit Withdrawal(src, dst, wad);
     }
 
-    function approve(address guy, uint wad) external returns (bool) {
-        allowance[msg.sender][guy] = wad;
-        emit Approval(msg.sender, guy, wad);
-        return true;
-    }
+    function withdraw(uint wad) public {
+        require(wad > 0, 'Attempted to withdraw zero hbar');
 
-    function transferFrom(address src, address dst, uint wad) external returns (bool) {
-        require(balanceOf[src] >= wad, "Insufficient balance");
-        
-        if (src != msg.sender) {
-            require(allowance[src][msg.sender] >= wad, "Insufficient allowance");
-            allowance[src][msg.sender] -= wad;
-        }
-        
-        balanceOf[src] -= wad;
-        balanceOf[dst] += wad;
-        emit Transfer(src, dst, wad);
-        return true;
-    }
+        safeTransferToken(token, msg.sender, address(this), wad);
+        safeBurnToken(token, msg.sender, wad, new int64[](0));
 
-    function totalSupply() external view returns (uint256) {
-        return totalWrapped;
+        (bool sent, ) = payable(msg.sender).call{value: wad}("");
+        require(sent, "hbar could not be sent");
+        emit Withdrawal(msg.sender, msg.sender, wad);
     }
 }

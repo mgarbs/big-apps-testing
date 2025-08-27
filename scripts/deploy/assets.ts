@@ -17,10 +17,17 @@ export class AssetsDeployer extends Deployer {
 
     this.logger.info("Deploying WHBAR...");
     const WHBAR = await ethers.getContractFactory("WHBAR");
-    const whbar = await WHBAR.deploy("0x0000000000000000000000000000000000163b5a");
+    const whbar = await WHBAR.deploy({ 
+      value: ethers.parseEther("5.0"),
+      gasLimit: 3000000
+    });
     await whbar.waitForDeployment();
     const whbarAddress = await whbar.getAddress();
     this.logger.success(`WHBAR deployed to: ${whbarAddress}`);
+    
+    // Get the HTS token address that was created
+    const htsTokenAddress = await whbar.token();
+    this.logger.success(`HTS Token created at: ${htsTokenAddress}`);
 
     const addresses = {
       whbar: whbarAddress

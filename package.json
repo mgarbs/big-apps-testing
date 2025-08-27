@@ -6,10 +6,9 @@
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
-    "test:saucerswap": "hardhat test test/apps/saucerswap.test.ts",
-    "test:saucerswap:v1": "hardhat test test/apps/saucerswap.test.ts --grep 'SaucerSwap V1'",
-    "test:saucerswap:v1:testnet": "hardhat test test/apps/saucerswap.test.ts --grep 'SaucerSwap V1' --network hederaTestnet",
-    "deploy:saucerswap:v1": "VERSION=v1 hardhat run scripts/deploy/saucerswap.ts",
+    "test:whbar:testnet": "hardhat test test/assets/whbar.test.ts --network hederaTestnet",
+    "test:whbar:integration": "hardhat run scripts/test-whbar-testnet.ts --network hederaTestnet",
+    "deploy:whbar:testnet": "hardhat run scripts/deploy/assets.ts --network hederaTestnet",
     "deploy:saucerswap:v1:testnet": "VERSION=v1 hardhat run scripts/deploy/saucerswap.ts --network hederaTestnet",
     "deploy:saucerswap:v1:previewnet": "VERSION=v1 hardhat run scripts/deploy/saucerswap.ts --network hederaPreviewnet",
     "typechain": "hardhat typechain",

@@ -6,4 +6,4 @@ cache/
 typechain-types/
 coverage/
 *.log
-.DS_Store
+.DS_Storedeployments/*-hederaTestnet.json

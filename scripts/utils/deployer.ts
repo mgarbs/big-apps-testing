@@ -18,7 +18,7 @@ export abstract class Deployer {
   }
 
   protected async saveDeployment(version: string, addresses: Record<string, string>) {
-    const network = process.env.HARDHAT_NETWORK || "hardhat";
+    const network = process.env.HARDHAT_NETWORK || "hederaTestnet";
     const timestamp = new Date().toISOString();
     
     const deployment = {
@@ -37,7 +37,7 @@ export abstract class Deployer {
   }
 
   protected async loadDeployment(version: string): Promise<any> {
-    const network = process.env.HARDHAT_NETWORK || "hardhat";
+    const network = process.env.HARDHAT_NETWORK || "hederaTestnet";
     const filename = `${this.appName.toLowerCase()}-${version}-${network}.json`;
     const filepath = join(this.deploymentsDir, filename);
     

@@ -15,7 +15,7 @@ describe("SaucerSwap Factory", function () {
   let addresses: any;
 
 
-  beforeEach(async function () {
+  before(async function () {
     [deployer, user1, user2] = await ethers.getSigners();
     
     // Deploy assets layer first
@@ -52,7 +52,7 @@ describe("SaucerSwap Factory", function () {
       const tx = await factory.createPair(tokenA, tokenB, {
         value: ethers.parseEther("1")
       });
-      const receipt = await tx.wait();
+      await tx.wait();
 
       const pairAddress = await factory.getPair(tokenA, tokenB);
       expect(pairAddress).to.not.equal(ethers.ZeroAddress);

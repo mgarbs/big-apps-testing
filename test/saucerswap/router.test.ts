@@ -16,7 +16,7 @@ describe("SaucerSwap Router", function () {
   let addresses: any;
 
 
-  beforeEach(async function () {
+  before(async function () {
     [deployer, user1, user2] = await ethers.getSigners();
     
     // Deploy assets layer first

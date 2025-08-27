@@ -40,7 +40,7 @@ describe("SaucerSwap Integration Tests", function () {
     return await TestToken.deploy(name, symbol, 18, totalSupply);
   }
 
-  beforeEach(async function () {
+  before(async function () {
     [deployer, user1, user2] = await ethers.getSigners();
     
     // Deploy assets layer first
@@ -246,7 +246,7 @@ describe("SaucerSwap Integration Tests", function () {
   });
 
   describe("Price Impact and Slippage", function () {
-    beforeEach(async function () {
+    before(async function () {
       // Create pair and add significant liquidity
       await factory.createPair(
         await tokenA.getAddress(),

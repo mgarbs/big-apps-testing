@@ -1,0 +1,49 @@
+import { ethers } from "hardhat";
+import { Deployer } from "../utils/deployer";
+
+export class AssetsDeployer extends Deployer {
+  constructor() {
+    super("Assets");
+  }
+
+  async deployWHBAR() {
+    this.logger.info("Starting WHBAR deployment...");
+    
+    const [deployer] = await ethers.getSigners();
+    const network = await ethers.provider.getNetwork();
+    this.logger.info(`Deploying with account: ${deployer.address}`);
+    this.logger.info(`Account balance: ${ethers.formatEther(await deployer.provider.getBalance(deployer.address))} HBAR`);
+    this.logger.info(`Network: ${network.name} (Chain ID: ${network.chainId})`);
+
+    this.logger.info("Deploying WHBAR...");
+    const WHBAR = await ethers.getContractFactory("WHBAR");
+    const whbar = await WHBAR.deploy("0x0000000000000000000000000000000000163b5a");
+    await whbar.waitForDeployment();
+    const whbarAddress = await whbar.getAddress();
+    this.logger.success(`WHBAR deployed to: ${whbarAddress}`);
+
+    const addresses = {
+      whbar: whbarAddress
+    };
+
+    await this.saveDeployment("assets", addresses);
+    this.logger.success("Assets deployment completed!");
+    
+    return { 
+      deployments: { whbar },
+      addresses 
+    };
+  }
+}
+
+async function main() {
+  const deployer = new AssetsDeployer();
+  await deployer.deployWHBAR();
+}
+
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

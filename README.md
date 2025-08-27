@@ -1,86 +1,102 @@
-# Big Apps - Hedera Network Testing Framework
+# Big Apps - Hedera DeFi Testing Framework
 
-A production-ready framework for deploying and testing major DeFi applications on Hedera testnet and previewnet. Built for network upgrade validation and contract verification.
+Production-ready framework for deploying and testing major DeFi applications on Hedera networks.
 
 ## Quick Start
 
-1. **Setup:**
-   ```bash
-   npm install
-   cp .env.example .env  # Add your PRIVATE_KEY
-   ```
-
-2. **Deploy SaucerSwap V1:**
-   ```bash
-   npm run deploy:saucerswap:v1:testnet
-   ```
-
-3. **Test Deployment:**
-   ```bash
-   npm run test:saucerswap:v1:testnet
-   ```
-
-## Current Status
-
-### ✅ SaucerSwap V1 - PRODUCTION READY
-
-Full Uniswap V2 based DEX deployed and tested on Hedera networks:
-
-- **Factory**: Creates HTS token trading pairs with configurable fees
-- **Router**: Handles swaps and liquidity management  
-- **WHBAR Integration**: Uses existing testnet/previewnet WHBAR (0.0.15057)
-
-### 🔄 Future Big Apps
-
-Ready to add:
-- **SaucerSwap V2** (Uniswap V3 based)
-- **Bonzo** 
-- **Stader**
-- **HSuite**
-- **Stargate**
-- **SquidRouter**
-
-## Key Features
-
-- **Zero Contract Modifications**: Uses official SaucerSwap contracts exactly as published
-- **HTS Native**: Full Hedera Token Service integration
-- **Network Upgrade Ready**: Validates contracts work post-upgrade
-- **Clean Architecture**: Modular, scalable, no spaghetti code
-- **Production Grade**: Real deployments with proper logging and artifact management
-
-## Commands
-
-### Deployment
 ```bash
-# Testnet
-npm run deploy:saucerswap:v1:testnet
+npm install
+cp .env.example .env
 
-# Previewnet  
-npm run deploy:saucerswap:v1:previewnet
+# Deploy assets layer
+npx hardhat run scripts/deploy/assets.ts --network hederaTestnet
+
+# Deploy applications  
+npx hardhat run scripts/deploy/saucerswap.ts --network hederaTestnet
+
+# Run tests
+npx hardhat test --network hederaTestnet
 ```
 
-### Testing
-```bash
-# Compile contracts
-npm run compile
+## Architecture
 
-# Test on testnet
-npm run test:saucerswap:v1:testnet
+### Assets Layer
+Core infrastructure deployed first:
+- **WHBAR**: Wrapped HBAR implementation with HTS integration
+
+### Application Layer  
+DeFi applications that use the assets layer:
+- **SaucerSwap V1**: Uniswap V2-based DEX
+
+## Status
+
+### Assets
+- **WHBAR**: Wrapped HBAR contract with Hedera Token Service integration
+
+### SaucerSwap V1
+- **Factory**: Creates token trading pairs with configurable fees
+- **Router**: Handles swaps and liquidity management
+- **Testing**: Comprehensive test suite covering all functionality
+
+## Deployment
+
+### Deploy Assets
+```bash
+npx hardhat run scripts/deploy/assets.ts --network hederaTestnet
+```
+
+### Deploy SaucerSwap  
+```bash
+npx hardhat run scripts/deploy/saucerswap.ts --network hederaTestnet
+```
+
+### Full Deployment
+```bash
+npx hardhat run scripts/deploy/full.ts --network hederaTestnet
+```
+
+## Testing
+
+```bash
+npx hardhat test --network hederaTestnet
+npx hardhat test test/saucerswap/factory.test.ts --network hederaTestnet
+npx hardhat test test/assets/whbar.test.ts --network hederaTestnet
+```
+
+### Test Structure
+```
+test/
+├── assets/
+│   └── whbar.test.ts       # WHBAR functionality
+└── saucerswap/
+    ├── saucer.test.ts      # Basic deployment tests
+    ├── factory.test.ts     # Factory functionality
+    ├── router.test.ts      # Router functionality
+    └── integration.test.ts # End-to-end flows
 ```
 
 ## Project Structure
 
 ```
 big-apps/
-├── contracts/saucerswap/           # SaucerSwap V1 contracts
-│   ├── UniswapV2Factory.sol        # Pair factory
-│   ├── UniswapV2Router02.sol       # Trading router
-│   ├── hedera/                     # HTS integration
-│   ├── interfaces/                 # Contract interfaces
-│   └── libraries/                  # Utility libraries
-├── scripts/deploy/                 # Deployment scripts
-├── test/apps/                      # Test suites
-└── deployments/                    # Deployment artifacts
+├── contracts/
+│   ├── assets/                  # Core infrastructure
+│   │   └── WHBAR.sol           # Wrapped HBAR implementation
+│   └── saucerswap/             # SaucerSwap V1 contracts
+│       ├── UniswapV2Factory.sol # Pair factory
+│       ├── UniswapV2Router02.sol# Trading router
+│       ├── hedera/             # HTS integration
+│       ├── interfaces/         # Contract interfaces
+│       └── libraries/          # Utility libraries
+├── scripts/deploy/
+│   ├── assets.ts               # Assets deployment
+│   ├── saucerswap.ts          # SaucerSwap deployment
+│   └── utils/                  # Deployment utilities
+├── test/
+│   ├── assets/                 # Assets tests
+│   └── saucerswap/            # SaucerSwap tests
+├── deployments/               # Deployment artifacts
+└── typechain-types/           # Generated types
 ```
 
 ## Environment Configuration
@@ -92,14 +108,39 @@ HEDERA_TESTNET_RPC=https://testnet.hashio.io/api
 HEDERA_PREVIEWNET_RPC=https://previewnet.hashio.io/api
 ```
 
-## Adding New Apps
+## Features
 
-Follow the SaucerSwap pattern:
+- **Modular**: Assets layer → Application layer dependency flow
+- **HTS Integration**: Hedera Token Service compatibility
+- **Comprehensive Testing**: Full Uniswap V2-style test coverage
+- **Network Verified**: All contracts visible on Hashscan
 
-1. Create `contracts/[app]/` directory
-2. Add app contracts and dependencies  
-3. Create `scripts/deploy/[app].ts`
-4. Add test suite in `test/apps/[app].test.ts`
-5. Update package.json scripts
+## Deployment Artifacts
 
-No modifications to original contracts required - framework handles everything.
+Each deployment creates JSON artifacts:
+```json
+{
+  "network": "hederaTestnet",
+  "version": "assets",
+  "timestamp": "2025-08-26T19:30:00.000Z",
+  "addresses": {
+    "whbar": "0x7e7d61C946C6125AA019Cea12a1844541BA1568a"
+  },
+  "app": "Assets"
+}
+```
+
+## Adding Applications
+
+1. Create contracts in `contracts/[app]/`
+2. Create deployment script in `scripts/deploy/[app].ts`
+3. Add tests in `test/[app]/`
+4. Load dependencies from assets layer
+
+## Contract Verification
+
+All deployed contracts are verifiable on Hashscan:
+- **Testnet**: https://hashscan.io/testnet/contract/[address]
+- **Previewnet**: https://hashscan.io/previewnet/contract/[address]
+
+Deployment artifacts in `deployments/` contain all contract addresses.

@@ -37,9 +37,6 @@ const config: HardhatUserConfig = {
     ],
   },
   networks: {
-    hardhat: {
-      chainId: 1337,
-    },
     hederaTestnet: {
       url: process.env.HEDERA_TESTNET_RPC || "https://testnet.hashio.io/api",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],

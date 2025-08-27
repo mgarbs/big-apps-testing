@@ -24,8 +24,6 @@ contract WHBAR is IWHBAR, SafeHederaTokenService {
         token = address(this);
     }
 
-    function associateAccount(address account) external override {
-    }
 
     fallback() external payable {
         deposit();

@@ -85,13 +85,13 @@ describe("WHBAR (Wrapped HBAR)", function () {
       const amount1 = ethers.parseEther("1");
       const amount2 = ethers.parseEther("2");
       
-      await expect(whbar.connect(user1).deposit({ value: amount1 }))
+      await expect(whbar.connect(deployer).deposit({ value: amount1 }))
         .to.emit(whbar, "Deposit")
-        .withArgs(user1.address, user1.address, ethers.parseUnits("1", 8));
+        .withArgs(deployer.address, deployer.address, ethers.parseUnits("1", 8));
         
-      await expect(whbar.connect(user2).deposit({ value: amount2 }))
+      await expect(whbar.connect(deployer).deposit({ value: amount2 }))
         .to.emit(whbar, "Deposit")
-        .withArgs(user2.address, user2.address, ethers.parseUnits("2", 8));
+        .withArgs(deployer.address, deployer.address, ethers.parseUnits("2", 8));
     });
 
     it("should reject zero value deposits", async function () {

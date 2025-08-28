@@ -31,27 +31,40 @@ index 44d8823f..acb49a91 100644
        timeout: 0,
      },
 diff --git a/helpers/init-helpers.ts b/helpers/init-helpers.ts
-index 2880de50..8ff3402a 100644
+index 2880de50..438c95d5 100644
 --- a/helpers/init-helpers.ts
 +++ b/helpers/init-helpers.ts
-@@ -162,7 +162,7 @@ export const initReservesByHelper = async (
-   console.log(`- Reserves initialization in ${chunkedInitInputParams.length} txs`);
-   for (let chunkIndex = 0; chunkIndex < chunkedInitInputParams.length; chunkIndex++) {
-     const tx3 = await waitForTx(
--      await configurator.batchInitReserve(chunkedInitInputParams[chunkIndex])
-+      await configurator.batchInitReserve(chunkedInitInputParams[chunkIndex], {gasLimit: 5000000})
-     );
+@@ -160,14 +160,14 @@ export const initReservesByHelper = async (
+   const configurator = await getLendingPoolConfiguratorProxy();
  
-     console.log(`  - Reserve ready for: ${chunkedSymbols[chunkIndex].join(', ')}`);
+   console.log(`- Reserves initialization in ${chunkedInitInputParams.length} txs`);
+-  for (let chunkIndex = 0; chunkIndex < chunkedInitInputParams.length; chunkIndex++) {
+-    const tx3 = await waitForTx(
+-      await configurator.batchInitReserve(chunkedInitInputParams[chunkIndex])
+-    );
++  // for (let chunkIndex = 0; chunkIndex < chunkedInitInputParams.length; chunkIndex++) {
++  //   const tx3 = await waitForTx(
++  //     await configurator.batchInitReserve(chunkedInitInputParams[chunkIndex], {gasLimit: 5000000})
++  //   );
+ 
+-    console.log(`  - Reserve ready for: ${chunkedSymbols[chunkIndex].join(', ')}`);
+-    console.log('    * gasUsed', tx3.gasUsed.toString());
+-  }
++  //   console.log(`  - Reserve ready for: ${chunkedSymbols[chunkIndex].join(', ')}`);
++  //   console.log('    * gasUsed', tx3.gasUsed.toString());
++  // }
+ };
+ 
+ export const getPairsTokenAggregator = (
 diff --git a/helpers/oracles-helpers.ts b/helpers/oracles-helpers.ts
-index 5c28e7e0..58a8eb56 100644
+index 5c28e7e0..041dc9d1 100644
 --- a/helpers/oracles-helpers.ts
 +++ b/helpers/oracles-helpers.ts
 @@ -49,6 +49,9 @@ export const setInitialMarketRatesInRatesOracleByHelper = async (
      await lendingRateOracleInstance.transferOwnership(stableAndVariableTokenHelper.address)
    );
  
-+  console.debug(`=== Waiting 10s to avoid "replacement transaction underpriced" errors ===`);
++  console.debug(`=== Waiting 10s to avoid ownership issues===`);
 +  await new Promise(resolve => setTimeout(resolve, 10 * 1000));
 +
    console.log(`- Oracle borrow initalization in ${chunkedTokens.length} txs`);

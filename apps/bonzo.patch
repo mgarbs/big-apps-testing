@@ -1,11 +1,18 @@
 diff --git a/.env b/.env
 new file mode 100644
-index 00000000..42b5918f
+index 00000000..acca5cc4
 --- /dev/null
 +++ b/.env
-@@ -0,0 +1,4 @@
+@@ -0,0 +1,11 @@
++
++ACCOUNT_ID=0.0.1021
++PRIVATE_KEY=0xeae4e00ece872dd14fb6dc7a04f390563c7d69d16326f2a703ec8e0934060cc7
++
 +PRIVATE_KEY2=0xeae4e00ece872dd14fb6dc7a04f390563c7d69d16326f2a703ec8e0934060cc7
++PRIVATE_KEY3=0x60fe891f13824a2c1da20fb6a14e28fa353421191069ba6b6d09dd6c29b90eff
 +PRIVATE_KEY_MAINNET=0xeae4e00ece872dd14fb6dc7a04f390563c7d69d16326f2a703ec8e0934060cc7
++
++PRIVATE_KEY_MAINNET_PROXY=0xeae4e00ece872dd14fb6dc7a04f390563c7d69d16326f2a703ec8e0934060cc7
 +
 +PROVIDER_URL_MAINNET=http://localhost:7546
 diff --git a/.gitignore b/.gitignore

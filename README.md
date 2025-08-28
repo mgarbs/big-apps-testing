@@ -27,6 +27,7 @@ Core infrastructure deployed first:
 ### Application Layer  
 DeFi applications that use the assets layer:
 - **SaucerSwap V1**: Uniswap V2-based DEX
+- **SaucerSwap V2**: Uniswap V3-based DEX
 
 ## Status
 
@@ -37,6 +38,11 @@ DeFi applications that use the assets layer:
 - **Factory**: Creates token trading pairs with configurable fees
 - **Router**: Handles swaps and liquidity management
 - **Testing**: Comprehensive test suite covering all functionality
+
+### SaucerSwap V2
+- **Factory**: Deploys Uniswap V3 pools
+- **Pool**: Uniswap V3 Pool contract
+- **PoolDeployer**: Deploys a pool
 
 ## Deployment
 

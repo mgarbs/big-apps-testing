@@ -17,6 +17,33 @@ const config: HardhatUserConfig = {
         },
       },
       {
+        version: "0.8.12",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 1,
+          },
+        },
+      },
+      {
+        version: "0.8.4",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+        },
+      },
+      {
+        version: "0.8.0",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+        },
+      },
+      {
         version: "0.7.6",
         settings: {
           optimizer: {
@@ -46,6 +73,13 @@ const config: HardhatUserConfig = {
       url: process.env.HEDERA_PREVIEWNET_RPC || "https://previewnet.hashio.io/api",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 297,
+    },
+    hederaLocalnet: {
+      url: process.env.HEDERA_LOCALNET_RPC || "http://localhost:7546/",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 298,
+      gas: 8000000,
+      blockGasLimit: 15000000,
     },
   },
   typechain: {

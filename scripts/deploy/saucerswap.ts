@@ -63,8 +63,92 @@ export class SaucerSwapDeployer extends Deployer {
   }
 
   async deployV2() {
-    this.logger.info("SaucerSwap V2 deployment not yet implemented");
-    throw new Error("V2 deployment not implemented - use V1 for now");
+    this.logger.info("Starting SaucerSwap V2 deployment...");
+    
+    const [deployer] = await ethers.getSigners();
+    const network = await ethers.provider.getNetwork();
+    this.logger.info(`Deploying with account: ${deployer.address}`);
+    this.logger.info(`Account balance: ${ethers.formatEther(await deployer.provider.getBalance(deployer.address))} HBAR`);
+    this.logger.info(`Network: ${network.name} (Chain ID: ${network.chainId})`);
+
+    const deployments = {
+      libraries: {} as any,
+      factory: null as any,
+      router: null as any
+    };
+
+    let whbarAddress: string;
+    try {
+      const network = process.env.HARDHAT_NETWORK || "hederaTestnet";
+      const assetsFilePath = `${process.cwd()}/deployments/assets-assets-${network}.json`;
+      const assetsDeployment = JSON.parse(require("fs").readFileSync(assetsFilePath, "utf8"));
+      whbarAddress = assetsDeployment.addresses.whbar;
+      this.logger.info(`Using pre-deployed WHBAR at: ${whbarAddress}`);
+    } catch (error) {
+      throw new Error("WHBAR not found. Please deploy assets first using: npx hardhat run scripts/deploy/assets.ts");
+    }
+
+    // Deploy required libraries first
+    const librariesToDeploy = [
+      "BitMath", "HbarConversion", "Oracle", "SwapMath", "TickMath",
+      "SafeCast", "Tick", "TickBitmap", "Position", "FullMath", 
+      "FixedPoint128", "TransferHelper", "AssociateHelper", "SqrtPriceMath"
+    ];
+    
+    const libraryContracts: { [key: string]: string } = {
+      "BitMath": "BitMath",
+      "HbarConversion": "HbarConversion", 
+      "Oracle": "Oracle",
+      "SwapMath": "SwapMath",
+      "TickMath": "TickMath",
+      "SafeCast": "contracts/saucerswap-v2/libraries/SafeCast.sol:SafeCast",
+      "Tick": "Tick",
+      "TickBitmap": "TickBitmap",
+      "Position": "Position",
+      "FullMath": "FullMath",
+      "FixedPoint128": "FixedPoint128",
+      "TransferHelper": "contracts/saucerswap-v2/libraries/TransferHelper.sol:TransferHelper",
+      "AssociateHelper": "AssociateHelper",
+      "SqrtPriceMath": "SqrtPriceMath"
+    };
+
+    for (const libName of librariesToDeploy) {
+      this.logger.info(`Deploying ${libName} library...`);
+      const contractName = libraryContracts[libName] || libName;
+      const LibFactory = await ethers.getContractFactory(contractName);
+      const lib = await LibFactory.deploy();
+      await lib.waitForDeployment();
+      const libAddress = await lib.getAddress();
+      deployments.libraries[libName] = libAddress;
+      this.logger.success(`${libName} deployed to: ${libAddress}`);
+    }
+
+    this.logger.info("Deploying UniswapV3Factory...");
+    const Factory = await ethers.getContractFactory("UniswapV3Factory", {
+      libraries: {
+        "contracts/saucerswap-v2/libraries/BitMath.sol:BitMath": deployments.libraries.BitMath,
+        "contracts/saucerswap-v2/libraries/HbarConversion.sol:HbarConversion": deployments.libraries.HbarConversion,
+        "contracts/saucerswap-v2/libraries/Oracle.sol:Oracle": deployments.libraries.Oracle,
+        "contracts/saucerswap-v2/libraries/SwapMath.sol:SwapMath": deployments.libraries.SwapMath,
+        "contracts/saucerswap-v2/libraries/TickMath.sol:TickMath": deployments.libraries.TickMath,
+      }
+    });
+    deployments.factory = await Factory.deploy({
+      gasLimit: 10000000
+    });
+    await deployments.factory.waitForDeployment();
+    this.logger.success(`Factory deployed to: ${await deployments.factory.getAddress()}`);
+
+    const addresses = {
+      whbar: whbarAddress,
+      libraries: deployments.libraries,
+      factory: await deployments.factory.getAddress(),
+    };
+
+    await this.saveDeployment("v2", addresses);
+    this.logger.success("SaucerSwap V2 deployment completed!");
+    
+    return { deployments, addresses };
   }
 }
 

@@ -3,8 +3,10 @@
 ## Setup
 
 Apply the `bonzo.patch` onto the `bonzo/` submodule to setup the customizations needed to run the deployment process.
+In the `bonzo/` folder run
 
 ```sh
+git apply ../bonzo.patch
 ```
 
 The patch applies the following modifications
@@ -25,9 +27,24 @@ The last step allows us to at least have a partial deployment process that runs 
 > git diff > ../bonzo.patch
 > ```
 
-## Deployment
+## Install
 
-To execute the deployment process for Bonzo, run
+Install Node dependencies with
+
+```sh
+npm ci --force
+```
+
+## Compile & Deploy
+
+First, you need to compile the smart contracts.
+You can do so by running
+
+```sh
+npm run compile
+```
+
+Then, to execute the deployment process for Bonzo, run
 
 ```sh
 npm run hedera:mainnet:full:migration

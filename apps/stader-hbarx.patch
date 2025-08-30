@@ -1,0 +1,50 @@
+diff --git a/index.js b/index.js
+index c7454ea..3d5f0eb 100644
+--- a/index.js
++++ b/index.js
+@@ -172,21 +172,20 @@ const getBalance = async (operatorId) => {
+     }
+   }
+ };
++
+ const main = async () => {
+-  try {
+-    rl.question("What is your account id? ", async (accountId) => {
++const accountId = process.env.ACCOUNT_ID;
++const privateKey = process.env.PRIVATE_KEY;
++
+       const operatorId = AccountId.fromString(accountId);
+-      rl.question(
+-        "What is your account Private key (We do not store or upload this key)? ",
+-        async (privateKey) => {
++
+           const operatorKey = PrivateKey.fromString(privateKey);
+           client.setOperator(operatorId, operatorKey);
+           await getBalance(operatorId);
+           await getExchangeRate();
+           // await getUnbondingTime();
+-          rl.question(
+-            "what would you like to do stake/unstake/withdraw?(case sensitive) ",
+-            async (name) => {
++          const name = "stake";
++
+               if (name == "stake") {
+                 rl.question(
+                   "How much would you like to stake? ",
+@@ -218,16 +217,6 @@ const main = async () => {
+                 console.log("invalid input");
+                 rl.close();
+               }
+-            }
+-          );
+-        }
+-      );
+-    });
+-  } catch (e) {
+-    console.log(`Error: ${e.message}`);
+-    // console.log(e);
+-    process.exit(1);
+-  }
+ };
+ 
+ main();

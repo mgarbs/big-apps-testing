@@ -1,3 +1,6 @@
 [submodule "apps/bonzo"]
 	path = apps/bonzo
 	url = https://github.com/Bonzo-Labs/bonzo-finance-contracts
+[submodule "apps/stader-hbarx"]
+	path = apps/stader-hbarx
+	url = https://github.com/stader-labs/hbarx-cli.git

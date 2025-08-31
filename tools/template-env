@@ -1,0 +1,12 @@
+# Hedera Network Configuration
+
+# SOLO
+#
+PRIVATE_KEY=ENV_PRIVATE_KEY
+
+HEDERA_TESTNET_RPC=https://testnet.hashio.io/api
+HEDERA_PREVIEWNET_RPC=https://previewnet.hashio.io/api
+HEDERA_LOCALNET_RPC=http://localhost:7546/
+
+# Debug mode
+DEBUG=true

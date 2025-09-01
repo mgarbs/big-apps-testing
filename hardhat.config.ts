@@ -78,7 +78,7 @@ const config: HardhatUserConfig = {
       url: process.env.HEDERA_LOCALNET_RPC || "http://localhost:7546/",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 298,
-      gas: 8000000,
+      gas: 12000000,
       blockGasLimit: 15000000,
     },
   },

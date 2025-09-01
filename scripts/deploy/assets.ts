@@ -18,7 +18,7 @@ export class AssetsDeployer extends Deployer {
     this.logger.info("Deploying WHBAR...");
     const WHBAR = await ethers.getContractFactory("WHBAR");
     const whbar = await WHBAR.deploy({ 
-      value: ethers.parseEther("5.0"),
+      value: ethers.parseEther("30.0"),
       gasLimit: 8000000
     });
     await whbar.waitForDeployment();

@@ -13,6 +13,9 @@ describe("SaucerSwap Factory", function () {
   let factory: any;
   let whbar: any;
   let addresses: any;
+  let testTokenA: any;
+  let testTokenB: any;
+  let testTokenC: any;
 
 
   before(async function () {
@@ -28,6 +31,10 @@ describe("SaucerSwap Factory", function () {
     const result = await saucerSwapDeployer.deployV1();
     factory = result.deployments.factory;
     addresses = result.addresses;
+    
+    // Use existing WHBAR as one of the test tokens
+    testTokenA = whbar;
+    console.log(`Using existing WHBAR as testTokenA: ${await testTokenA.token()}`);
   });
 
   describe("Factory Deployment", function () {
@@ -35,7 +42,7 @@ describe("SaucerSwap Factory", function () {
       expect(await factory.feeToSetter()).to.equal(deployer.address);
       expect(await factory.feeTo()).to.equal(ethers.ZeroAddress);
       expect(await factory.allPairsLength()).to.equal(0);
-      expect(await factory.pairCreateFee()).to.equal(ethers.parseEther("1")); // Default fee from contract
+      expect(await factory.pairCreateFee()).to.equal(0); // Now using fixed HBAR amounts
     });
 
     it("should have correct INIT_CODE_PAIR_HASH", async function () {
@@ -47,11 +54,11 @@ describe("SaucerSwap Factory", function () {
 
   describe("Pair Creation", function () {
     it("should create pair successfully with sufficient fee", async function () {
-      const tokenA = "0x0000000000000000000000000000000000123456";
-      const tokenB = "0x0000000000000000000000000000000000654321";
+      const tokenA = await testTokenA.token(); // Real HTS token
+      const tokenB = await testTokenB.token(); // Real HTS token
       
       const tx = await factory.createPair(tokenA, tokenB, {
-        value: ethers.parseEther("1")
+        value: ethers.parseEther("60")
       });
       await tx.wait();
 
@@ -66,66 +73,66 @@ describe("SaucerSwap Factory", function () {
     });
 
     it("should fail with insufficient pair creation fee", async function () {
-      const tokenA = "0x0000000000000000000000000000000000123456";
-      const tokenB = "0x0000000000000000000000000000000000654321";
+      const tokenA = await testTokenA.token(); // Real HTS token
+      const tokenB = await testTokenB.token(); // Real HTS token
       
       await expect(
         factory.createPair(tokenA, tokenB, {
-          value: ethers.parseEther("0.5")
+          value: ethers.parseEther("5") // Less than 10 HBAR minimum
         })
-      ).to.be.reverted;
+      ).to.be.revertedWith("UniswapV2: INSUFFICIENT_CREATION_FEE");
     });
 
     it("should fail to create pair with identical tokens", async function () {
-      const tokenA = "0x0000000000000000000000000000000000123456";
+      const tokenA = await testTokenA.token(); // Real HTS token
       
       await expect(
         factory.createPair(tokenA, tokenA, {
-          value: ethers.parseEther("1")
+          value: ethers.parseEther("60")
         })
       ).to.be.revertedWith("UniswapV2: IDENTICAL_ADDRESSES");
     });
 
     it("should fail to create pair with zero address", async function () {
-      const tokenB = "0x0000000000000000000000000000000000654321";
+      const tokenB = await testTokenB.token(); // Real HTS token
       
       await expect(
         factory.createPair(ethers.ZeroAddress, tokenB, {
-          value: ethers.parseEther("1")
+          value: ethers.parseEther("60")
         })
       ).to.be.revertedWith("UniswapV2: ZERO_ADDRESS");
     });
 
     it("should fail to create duplicate pair", async function () {
-      const tokenA = "0x0000000000000000000000000000000000123456";
-      const tokenB = "0x0000000000000000000000000000000000654321";
+      const tokenA = await testTokenA.token(); // Real HTS token
+      const tokenB = await testTokenB.token(); // Real HTS token
       
       await factory.createPair(tokenA, tokenB, {
-        value: ethers.parseEther("1")
+        value: ethers.parseEther("60")
       });
 
       await expect(
         factory.createPair(tokenA, tokenB, {
-          value: ethers.parseEther("1")
+          value: ethers.parseEther("60")
         })
       ).to.be.revertedWith("UniswapV2: PAIR_EXISTS");
     });
 
     it("should create multiple pairs", async function () {
-      const tokenA = "0x0000000000000000000000000000000000123456";
-      const tokenB = "0x0000000000000000000000000000000000654321";
-      const tokenC = "0x0000000000000000000000000000000000111111";
+      const tokenA = await testTokenA.token(); // Real HTS token
+      const tokenB = await testTokenB.token(); // Real HTS token  
+      const tokenC = await testTokenC.token(); // Real HTS token
 
       await factory.createPair(tokenA, tokenB, {
-        value: ethers.parseEther("1")
+        value: ethers.parseEther("60")
       });
 
       await factory.createPair(tokenA, tokenC, {
-        value: ethers.parseEther("1")
+        value: ethers.parseEther("60")
       });
 
       await factory.createPair(tokenB, tokenC, {
-        value: ethers.parseEther("1")
+        value: ethers.parseEther("60")
       });
 
       expect(await factory.allPairsLength()).to.equal(3);
@@ -206,11 +213,11 @@ describe("SaucerSwap Factory", function () {
 
   describe("Factory Events", function () {
     it("should emit PairCreated event with correct parameters", async function () {
-      const tokenA = "0x0000000000000000000000000000000000123456";
-      const tokenB = "0x0000000000000000000000000000000000654321";
+      const tokenA = await testTokenA.token(); // Real HTS token
+      const tokenB = await testTokenB.token(); // Real HTS token
       
       const tx = await factory.createPair(tokenA, tokenB, {
-        value: ethers.parseEther("1")
+        value: ethers.parseEther("60")
       });
 
       await expect(tx)
@@ -226,8 +233,11 @@ describe("SaucerSwap Factory", function () {
 
   describe("Gas Usage", function () {
     it("should track gas usage for pair creation", async function () {
-      const tx = await factory.createPair("0x0000000000000000000000000000000000123456", "0x0000000000000000000000000000000000654321", {
-        value: ethers.parseEther("1")
+      const tokenA = await testTokenA.token(); // Real HTS token
+      const tokenB = await testTokenB.token(); // Real HTS token
+      
+      const tx = await factory.createPair(tokenA, tokenB, {
+        value: ethers.parseEther("60")
       });
       const receipt = await tx.wait();
       

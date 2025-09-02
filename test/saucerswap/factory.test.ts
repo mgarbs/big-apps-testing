@@ -13,9 +13,7 @@ describe("SaucerSwap Factory", function () {
   let factory: any;
   let whbar: any;
   let addresses: any;
-  let testTokenA: any;
-  let testTokenB: any;
-  let testTokenC: any;
+  let testToken: any; // TestToken contract for creating pairs with WHBAR
 
 
   before(async function () {
@@ -32,9 +30,17 @@ describe("SaucerSwap Factory", function () {
     factory = result.deployments.factory;
     addresses = result.addresses;
     
-    // Use existing WHBAR as one of the test tokens
-    testTokenA = whbar;
-    console.log(`Using existing WHBAR as testTokenA: ${await testTokenA.token()}`);
+    // Deploy TestToken for pairing with WHBAR
+    console.log("Deploying TestToken...");
+    const TestTokenFactory = await ethers.getContractFactory("TokenCreateContract");
+    testToken = await TestTokenFactory.deploy({ 
+      value: ethers.parseEther("5.0"),
+      gasLimit: 3000000
+    });
+    await testToken.waitForDeployment();
+    console.log(`Create TestToken contract deployed at: ${await testToken.getAddress()}`);
+    console.log(`TestToken HTS token: ${await testToken.token()}`);
+    console.log(`WHBAR HTS token: ${await whbar.token()}`);
   });
 
   describe("Factory Deployment", function () {
@@ -54,18 +60,18 @@ describe("SaucerSwap Factory", function () {
 
   describe("Pair Creation", function () {
     it("should create pair successfully with sufficient fee", async function () {
-      const tokenA = await testTokenA.token(); // Real HTS token
-      const tokenB = await testTokenB.token(); // Real HTS token
+      const whbarToken = await whbar.token(); // WHBAR HTS token
+      const testTokenAddr = await testToken.token(); // TestToken HTS token
       
-      const tx = await factory.createPair(tokenA, tokenB, {
+      const tx = await factory.createPair(whbarToken, testTokenAddr, {
         value: ethers.parseEther("60")
       });
       await tx.wait();
 
-      const pairAddress = await factory.getPair(tokenA, tokenB);
+      const pairAddress = await factory.getPair(whbarToken, testTokenAddr);
       expect(pairAddress).to.not.equal(ethers.ZeroAddress);
       
-      const reversePair = await factory.getPair(tokenB, tokenA);
+      const reversePair = await factory.getPair(testTokenAddr, whbarToken);
       expect(reversePair).to.equal(pairAddress);
 
       expect(await factory.allPairsLength()).to.equal(1);
@@ -73,65 +79,73 @@ describe("SaucerSwap Factory", function () {
     });
 
     it("should fail with insufficient pair creation fee", async function () {
-      const tokenA = await testTokenA.token(); // Real HTS token
-      const tokenB = await testTokenB.token(); // Real HTS token
+      const whbarToken = await whbar.token();
+      const testTokenAddr = await testToken.token();
       
       await expect(
-        factory.createPair(tokenA, tokenB, {
+        factory.createPair(whbarToken, testTokenAddr, {
           value: ethers.parseEther("5") // Less than 10 HBAR minimum
         })
       ).to.be.revertedWith("UniswapV2: INSUFFICIENT_CREATION_FEE");
     });
 
     it("should fail to create pair with identical tokens", async function () {
-      const tokenA = await testTokenA.token(); // Real HTS token
+      const whbarToken = await whbar.token();
       
       await expect(
-        factory.createPair(tokenA, tokenA, {
+        factory.createPair(whbarToken, whbarToken, {
           value: ethers.parseEther("60")
         })
       ).to.be.revertedWith("UniswapV2: IDENTICAL_ADDRESSES");
     });
 
     it("should fail to create pair with zero address", async function () {
-      const tokenB = await testTokenB.token(); // Real HTS token
+      const testTokenAddr = await testToken.token();
       
       await expect(
-        factory.createPair(ethers.ZeroAddress, tokenB, {
+        factory.createPair(ethers.ZeroAddress, testTokenAddr, {
           value: ethers.parseEther("60")
         })
       ).to.be.revertedWith("UniswapV2: ZERO_ADDRESS");
     });
 
     it("should fail to create duplicate pair", async function () {
-      const tokenA = await testTokenA.token(); // Real HTS token
-      const tokenB = await testTokenB.token(); // Real HTS token
+      const whbarToken = await whbar.token();
+      const testTokenAddr = await testToken.token();
       
-      await factory.createPair(tokenA, tokenB, {
+      await factory.createPair(whbarToken, testTokenAddr, {
         value: ethers.parseEther("60")
       });
 
       await expect(
-        factory.createPair(tokenA, tokenB, {
+        factory.createPair(whbarToken, testTokenAddr, {
           value: ethers.parseEther("60")
         })
       ).to.be.revertedWith("UniswapV2: PAIR_EXISTS");
     });
 
     it("should create multiple pairs", async function () {
-      const tokenA = await testTokenA.token(); // Real HTS token
-      const tokenB = await testTokenB.token(); // Real HTS token  
-      const tokenC = await testTokenC.token(); // Real HTS token
+      const whbarToken = await whbar.token();
+      const testTokenAddr = await testToken.token();
+      
+      // Deploy a third token for this test
+      const TestTokenFactory = await ethers.getContractFactory("TokenCreateContract");
+      const testTokenC = await TestTokenFactory.deploy({ 
+        value: ethers.parseEther("5.0"),
+        gasLimit: 3000000
+      });
+      await testTokenC.waitForDeployment();
+      const tokenC = await testTokenC.token();
 
-      await factory.createPair(tokenA, tokenB, {
+      await factory.createPair(whbarToken, testTokenAddr, {
         value: ethers.parseEther("60")
       });
 
-      await factory.createPair(tokenA, tokenC, {
+      await factory.createPair(whbarToken, tokenC, {
         value: ethers.parseEther("60")
       });
 
-      await factory.createPair(tokenB, tokenC, {
+      await factory.createPair(testTokenAddr, tokenC, {
         value: ethers.parseEther("60")
       });
 
@@ -187,22 +201,23 @@ describe("SaucerSwap Factory", function () {
 
   describe("Pair Address Calculation", function () {
     it("should calculate CREATE2 addresses correctly", async function () {
-      const tokenA = "0x0000000000000000000000000000000000123456";
-      const tokenB = "0x0000000000000000000000000000000000654321";
+      const whbarToken = await whbar.token();
+      const testTokenAddr = await testToken.token();
       
-      const predictedAddress = await factory.createPair.staticCall(tokenA, tokenB, {
-        value: ethers.parseEther("1")
+      const predictedAddress = await factory.createPair.staticCall(whbarToken, testTokenAddr, {
+        value: ethers.parseEther("60")
       });
 
-      await factory.createPair(tokenA, tokenB, {
-        value: ethers.parseEther("1")
+      await factory.createPair(whbarToken, testTokenAddr, {
+        value: ethers.parseEther("60")
       });
 
-      const actualAddress = await factory.getPair(tokenA, tokenB);
+      const actualAddress = await factory.getPair(whbarToken, testTokenAddr);
       expect(actualAddress).to.equal(predictedAddress);
     });
 
     it("should return zero address for non-existent pair", async function () {
+      // Use fake addresses for this test since it's just checking getPair logic
       const tokenA = "0x0000000000000000000000000000000000123456";
       const tokenB = "0x0000000000000000000000000000000000654321";
       
@@ -213,19 +228,19 @@ describe("SaucerSwap Factory", function () {
 
   describe("Factory Events", function () {
     it("should emit PairCreated event with correct parameters", async function () {
-      const tokenA = await testTokenA.token(); // Real HTS token
-      const tokenB = await testTokenB.token(); // Real HTS token
+      const whbarToken = await whbar.token();
+      const testTokenAddr = await testToken.token();
       
-      const tx = await factory.createPair(tokenA, tokenB, {
+      const tx = await factory.createPair(whbarToken, testTokenAddr, {
         value: ethers.parseEther("60")
       });
 
       await expect(tx)
         .to.emit(factory, "PairCreated")
         .withArgs(
-          tokenA < tokenB ? tokenA : tokenB,
-          tokenA < tokenB ? tokenB : tokenA,
-          await factory.getPair(tokenA, tokenB),
+          whbarToken < testTokenAddr ? whbarToken : testTokenAddr,
+          whbarToken < testTokenAddr ? testTokenAddr : whbarToken,
+          await factory.getPair(whbarToken, testTokenAddr),
           1
         );
     });
@@ -233,10 +248,10 @@ describe("SaucerSwap Factory", function () {
 
   describe("Gas Usage", function () {
     it("should track gas usage for pair creation", async function () {
-      const tokenA = await testTokenA.token(); // Real HTS token
-      const tokenB = await testTokenB.token(); // Real HTS token
+      const whbarToken = await whbar.token();
+      const testTokenAddr = await testToken.token();
       
-      const tx = await factory.createPair(tokenA, tokenB, {
+      const tx = await factory.createPair(whbarToken, testTokenAddr, {
         value: ethers.parseEther("60")
       });
       const receipt = await tx.wait();

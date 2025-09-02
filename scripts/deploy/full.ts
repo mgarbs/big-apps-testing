@@ -13,6 +13,7 @@ async function main() {
   // Deploy SaucerSwap
   const saucerSwapDeployer = new SaucerSwapDeployer();
   await saucerSwapDeployer.deployV1();
+  await saucerSwapDeployer.deployV2();
   
   console.log("\n✅ Full deployment completed!");
 }

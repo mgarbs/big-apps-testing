@@ -1,9 +1,9 @@
 {
   "network": "hederaTestnet",
   "version": "assets",
-  "timestamp": "2025-08-27T19:15:42.281Z",
+  "timestamp": "2025-08-28T07:09:21.397Z",
   "addresses": {
-    "whbar": "0xF81e73Ed896383900D484d628F17a52EC386971B"
+    "whbar": "0xF4229e79C641c8A7f57f562634c85463dd77BCe9"
   },
   "app": "Assets"
 }

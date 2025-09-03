@@ -31,7 +31,7 @@ function main(yulFile) {
 
     if (errors !== undefined && errors.length > 0) {
         console.error('Compilation errors');
-        errors.forEach((err) => {
+        errors.forEach((/** @type {unknown} */ err) => {
             console.error(err);
         });
 
@@ -43,4 +43,8 @@ function main(yulFile) {
 }
 
 const yulFile = process.argv[2];
+if (yulFile === undefined) {
+    throw new Error('Yul file path must be specified');
+}
+
 main(yulFile);

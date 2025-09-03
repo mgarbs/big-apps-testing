@@ -1,15 +1,22 @@
-# Staking HBAR via CLI
+# Staking HBAR via CLI BigApps Test
+
+---
+
+> [!NOTE]
+> Below is the old `README`
+
+## Staking HBAR via CLI
 
 Stader team brings this utility which would enable you to Stake with your CLI. The Web version is available at <https://hedera.staderlabs.com/lt-pools>
 
-## Requirements
+### Requirements
 
 Please ensure you have the details handy before running the utility
 
 - Hedera Account Id
 - Hedera Private Key
 
-## How to Stake, Unstake or Withdraw?
+### How to Stake, Unstake or Withdraw?
 
 - Download the recommended Node js LTS version from <https://nodejs.org/en/>
 - Install it on your system
@@ -21,10 +28,10 @@ Please ensure you have the details handy before running the utility
 - Follow the instructions on the screen to stake, unstake, withdraw
 - Verify the HBARX transferred to the account.
 
-## Disclaimer
+### Disclaimer
 
 Please note that this code is not audited. Use it at your own risk.
 
-## Report Issues
+### Report Issues
 
 You can report any issues found here - <https://github.com/stader-labs/hbarx-cli/issues>

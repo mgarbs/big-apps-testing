@@ -3,7 +3,7 @@
 ---
 
 > [!NOTE]
-> Below is the old `README`
+> Below is the original `README` as found in [stader-labs/hbarx-cli](https://github.com/stader-labs/hbarx-cli/tree/ebf9d8d4127576edfa6c85d5503c73901b86870b).
 
 ## Staking HBAR via CLI
 

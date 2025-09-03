@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 
-import { parseArgs } from 'node:util';
+import { randomUUID } from 'node:crypto';
+import { debuglog, parseArgs } from 'node:util';
 
 import c from 'ansi-colors';
+
+const log = debuglog('fetch-storage');
 
 class AppError extends Error { }
 
@@ -16,32 +19,75 @@ const mirrorNodeConfig = {
     local: 'http://localhost:5551',
 };
 
-/**
- * @param {string} mirrorNodeUrl
- * @param {string} endpoint
- * @param {string} accumProp
- * @param {any[]} data
- */
-async function fetchEndpoint(mirrorNodeUrl, endpoint, accumProp, data = []) {
-    const response = await fetch(mirrorNodeUrl + endpoint);
+class MirrorNodeClient {
 
-    if (response.status !== 200) 
-        throw new AppError(`Failed to fetch data from Mirror Node (${response.status} ${response.statusText}): ${await response.text()}`);
+    /**
+     * @param {string} url
+     */
+    constructor(url) {
+        this.url = url;
+    }
 
-    const result = await response.json();
-    data.push(...result[accumProp]);
-    if (result.links.next !== null)
-        return fetchEndpoint(mirrorNodeUrl, result.links.next, accumProp, data);
+    /**
+     * @param {string} blockHashOrNumber 
+     */
+    fetchBlock(blockHashOrNumber) {
+        return this.#fetch(`/api/v1/blocks/${blockHashOrNumber}`);
+    }
 
-    return data;
+    /**
+     * @param {string} contractIdOrAddress
+     * @param {string=} timestamp
+     */
+    fetchContractState(contractIdOrAddress, timestamp) {
+        return this.#fetchNext(`/api/v1/contracts/${contractIdOrAddress}/state${searchParams({ timestamp })}`, 'state');
+    }
+
+    /**
+     * @param {string} endpoint
+     * @param {string} accumProp
+     * @param {any[]} data
+     * @return {Promise<any[]>}
+     */
+    async #fetchNext(endpoint, accumProp, data = []) {
+        const result = await this.#fetch(endpoint);
+        data.push(...result[accumProp]);
+        if (result.links.next !== null)
+            return this.#fetchNext(result.links.next, accumProp, data);
+
+        return data;
+    }
+
+    /**
+     * @param {string} endpoint 
+     */
+    async #fetch(endpoint) {
+        const reqId = randomUUID()
+        log('[%s] Fetching from %s', reqId, this.url + endpoint);
+        const response = await fetch(this.url + endpoint);
+
+        if (response.status !== 200)
+            throw new AppError(`Failed to fetch data from Mirror Node (${response.status} ${response.statusText}): ${await response.text()}`);
+
+        const value = await response.json();
+        log('[%s] Response data: %o', reqId, value);
+        return value;
+    }
 }
 
 /**
- * @param {string} mirrorNodeUrl
- * @param {string} contractIdOrAddress
+ * 
+ * @param {{[param: string]: string | undefined}} params
  */
-function fetchContractState(mirrorNodeUrl, contractIdOrAddress) {
-    return fetchEndpoint(mirrorNodeUrl, `/api/v1/contracts/${contractIdOrAddress}/state`, 'state');
+function searchParams(params) {
+    const searchParams = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined) {
+            searchParams.append(key, value);
+        }
+    }
+    const queryString = searchParams.toString();
+    return queryString !== '' ? `?${queryString}` : '';
 }
 
 async function main() {
@@ -52,6 +98,10 @@ async function main() {
                 type: 'string',
                 short: 'n',
                 default: 'solo',
+            },
+            block: {
+                type: 'string',
+                short: 'b',
             },
             yul: {
                 type: 'boolean',
@@ -66,11 +116,16 @@ async function main() {
         throw new AppError('Missing contract address');
     if (positionals.length > 1)
         throw new AppError(`Too many positional arguments: ${positionals.slice(1).join(', ')}`);
-    const mirrorNodeUrl = mirrorNodeConfig[values.network] ?? values.network;
 
-    const state = await fetchContractState(mirrorNodeUrl, contractAddress);
+    const mirrorNodeClient = new MirrorNodeClient(mirrorNodeConfig[values.network] ?? values.network);
+
+    const timestamp = values.block !== undefined
+        ? (await mirrorNodeClient.fetchBlock(values.block)).timestamp.from
+        : undefined;
+
+    const state = await mirrorNodeClient.fetchContractState(contractAddress, timestamp);
     if (state.length === 0)
-        throw new AppError(`No storage entries found for contract \`${contractAddress}\` on network ${mirrorNodeUrl}`);
+        throw new AppError(`No storage entries found for contract \`${contractAddress}\` on network ${mirrorNodeClient.url}`);
 
     if (values.yul) {
         console.info(`// ${state.length} entries found`);
@@ -82,13 +137,11 @@ async function main() {
     }
 }
 
-try {
-    await main();
-} catch (err) {
+main().catch(err => {
     if (err instanceof AppError) {
-        console.error(c.yellow(err.message));
+        console.error(c.yellow(`${err}`));
         process.exit(2);
     }
 
     throw err;
-}
+});

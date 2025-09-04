@@ -140,8 +140,7 @@ async function main() {
 main().catch(err => {
     if (err instanceof AppError) {
         console.error(c.yellow(`${err}`));
-        process.exit(2);
-    }
-
-    throw err;
+        process.exitCode = 2;
+    } else
+        throw err;
 });

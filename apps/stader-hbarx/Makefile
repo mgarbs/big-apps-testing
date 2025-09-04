@@ -16,4 +16,4 @@ stakingContract.yul: hbarxToken.address rewardsContract.address
 	cat stakingContract.template.yul | HBARX_TOKEN_ADDRESS=`cat hbarxToken.address` REWARDS_CONTRACT_ADDRESS=`cat rewardsContract.address` envsubst > $@
 
 clean:
-	-rm *.address
+	-rm *.address stakingContract.yul

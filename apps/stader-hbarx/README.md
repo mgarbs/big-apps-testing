@@ -1,4 +1,17 @@
+<!-- markdownlint-disable no-blanks-blockquote -->
+
 # Staking HBAR via CLI BigApps Test
+
+> [!NOTE]
+> The smart contracts listed here
+> <https://github.com/search?q=%22Rewards+contract+cannot+have+zero+balance%22&type=code>
+> are not the ones deployed on Hedera.
+> This is because there is sign of HBARX on those contracts.
+
+> [!NOTE]
+> The contract addresses are not listed in Stader Labs' docs
+> <https://stage.staderlabs.com/docs-v1/category/hedera>.
+> The addresses used as a starting point were taken from the original repo [stader-labs/hbarx-cli](https://github.com/stader-labs/hbarx-cli).
 
 ---
 

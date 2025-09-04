@@ -13,12 +13,14 @@ import {
   PrivateKey,
 } from '@hashgraph/sdk';
 
+class AppError extends Error { }
+
 console.log('Welcome to Stader HBARX staking CLI');
 
 const client = Client.forNetwork({ '127.0.0.1:50211': '0.0.3' });
 const tokenId = '0.0.834116';
 const stakingContractId = '0.0.1060'; // https://hashscan.io/mainnet/contract/0.0.1027588 on mainnet
-const undelegationContractId = '0.0.1027587';
+const undelegationContractId = '0.0.1027587'; // // https://hashscan.io/mainnet/contract/0.0.1027587 on mainnet
 
 /**
  * 
@@ -157,8 +159,13 @@ const getBalance = async (operatorId) => {
 async function main() {
   const cmd = process.argv[2];
 
-  const accountId = process.env.ACCOUNT_ID;
-  const privateKey = process.env.PRIVATE_KEY;
+  const accountId = process.env['ACCOUNT_ID'];
+  if (accountId === undefined)
+    throw new AppError('Missing `ACCOUNT_ID` environment variable');
+
+  const privateKey = process.env['PRIVATE_KEY'];
+  if (privateKey === undefined)
+    throw new AppError('Missing `PRIVATE_KEY` environment variable');
 
   const operatorId = AccountId.fromString(accountId);
   const operatorKey = PrivateKey.fromStringECDSA(privateKey);

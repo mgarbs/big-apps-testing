@@ -36,7 +36,10 @@ export class SaucerSwapDeployer extends Deployer {
     deployments.factory = await Factory.deploy(
       deployer.address,
       0, // pairCreateFee (unused - now using fixed HBAR amounts)
-      0  // tokenCreateFee (unused - now using fixed HBAR amounts)
+      100,  // tokenCreateFee (unused - now using fixed HBAR amounts)
+      {
+        gasLimit: 5000000
+      }
     );
     await deployments.factory.waitForDeployment();
     this.logger.success(`Factory deployed to: ${await deployments.factory.getAddress()}`);
@@ -45,7 +48,10 @@ export class SaucerSwapDeployer extends Deployer {
     const Router = await ethers.getContractFactory("UniswapV2Router02");
     deployments.router = await Router.deploy(
       await deployments.factory.getAddress(),
-      whbarAddress
+      whbarAddress,
+      {
+        gasLimit: 8000000
+      }
     );
     await deployments.router.waitForDeployment();
     this.logger.success(`Router deployed to: ${await deployments.router.getAddress()}`);

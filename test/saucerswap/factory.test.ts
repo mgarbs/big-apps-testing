@@ -3,6 +3,7 @@ import { ethers } from "hardhat";
 import { AssetsDeployer } from "../../scripts/deploy/assets";
 import { SaucerSwapDeployer } from "../../scripts/deploy/saucerswap";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import Utils from './../utils'
 
 describe("SaucerSwap Factory", function () {
   let deployer: SignerWithAddress;
@@ -34,8 +35,8 @@ describe("SaucerSwap Factory", function () {
     console.log("Deploying TestToken...");
     const TestTokenFactory = await ethers.getContractFactory("TokenCreateContract");
     testToken = await TestTokenFactory.deploy({ 
-      value: ethers.parseEther("5.0"),
-      gasLimit: 3000000
+      value: ethers.parseEther("10.0"),
+      gasLimit: 8000000
     });
     await testToken.waitForDeployment();
     console.log(`Create TestToken contract deployed at: ${await testToken.getAddress()}`);
@@ -62,11 +63,13 @@ describe("SaucerSwap Factory", function () {
     it("should create pair successfully with sufficient fee", async function () {
       const whbarToken = await whbar.token(); // WHBAR HTS token
       const testTokenAddr = await testToken.token(); // TestToken HTS token
-      
+      console.log(addresses.factory)
+      await Utils.updateAccountKeysViaHapi([addresses.factory])
       const tx = await factory.createPair(whbarToken, testTokenAddr, {
-        value: ethers.parseEther("60")
+        value: ethers.parseEther("60.0"),
+        gasLimit: 8000000
       });
-      await tx.wait();
+      const receipt = await tx.wait();
 
       const pairAddress = await factory.getPair(whbarToken, testTokenAddr);
       expect(pairAddress).to.not.equal(ethers.ZeroAddress);

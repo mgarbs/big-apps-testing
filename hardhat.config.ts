@@ -3,6 +3,11 @@ import "@nomicfoundation/hardhat-toolbox";
 import * as dotenv from "dotenv";
 
 dotenv.config();
+import {
+  OPERATOR_ID_A,
+  OPERATOR_KEY_A,
+  NETWORKS,
+} from './constants';
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -80,6 +85,13 @@ const config: HardhatUserConfig = {
       chainId: 298,
       gas: 12000000,
       blockGasLimit: 15000000,
+      sdkClient: {
+        operatorId: OPERATOR_ID_A,
+        operatorKey: OPERATOR_KEY_A,
+        networkNodeUrl: NETWORKS.local.networkNodeUrl,
+        nodeId: NETWORKS.local.nodeId,
+        mirrorNode: NETWORKS.local.mirrorNode,
+      },
     },
   },
   typechain: {

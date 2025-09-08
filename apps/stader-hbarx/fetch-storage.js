@@ -9,85 +9,76 @@ const log = debuglog('fetch-storage');
 
 class AppError extends Error { }
 
-/**
- * @type {{ [network: string]: string }}
- */
-const mirrorNodeConfig = {
-    mainnet: 'https://mainnet.mirrornode.hedera.com',
-    testnet: 'https://testnet.mirrornode.hedera.com',
-    solo: 'http://localhost:8081',
-    local: 'http://localhost:5551',
-};
-
 class MirrorNodeClient {
 
     /**
-     * @param {string} url
+     * @type {{ [network: string]: string }}
      */
-    constructor(url) {
-        this.url = url;
+    static #config = {
+        mainnet: 'https://mainnet.mirrornode.hedera.com',
+        testnet: 'https://testnet.mirrornode.hedera.com',
+        solo: 'http://localhost:8081',
+        local: 'http://localhost:5551',
+    };
+
+    /**
+     * @param {string} urlOrNetwork
+     */
+    constructor(urlOrNetwork) {
+        this.baseUrl = new URL(MirrorNodeClient.#config[urlOrNetwork] || urlOrNetwork);
     }
 
     /**
      * @param {string} blockHashOrNumber 
      */
-    fetchBlock(blockHashOrNumber) {
-        return this.#fetch(`/api/v1/blocks/${blockHashOrNumber}`);
+    getBlock(blockHashOrNumber) {
+        return this.#get(`/api/v1/blocks/${blockHashOrNumber}`);
     }
 
     /**
      * @param {string} contractIdOrAddress
      * @param {string=} timestamp
      */
-    fetchContractState(contractIdOrAddress, timestamp) {
-        return this.#fetchNext(`/api/v1/contracts/${contractIdOrAddress}/state${searchParams({ timestamp })}`, 'state');
+    getContractState(contractIdOrAddress, timestamp) {
+        return this.#getNext(`/api/v1/contracts/${contractIdOrAddress}/state`, { timestamp }, 'state');
     }
 
     /**
      * @param {string} endpoint
+     * @param {{[param: string]: string | undefined}} params
      * @param {string} accumProp
-     * @param {any[]} data
-     * @return {Promise<any[]>}
      */
-    async #fetchNext(endpoint, accumProp, data = []) {
-        const result = await this.#fetch(endpoint);
-        data.push(...result[accumProp]);
-        if (result.links.next !== null)
-            return this.#fetchNext(result.links.next, accumProp, data);
-
+    async #getNext(endpoint, params, accumProp) {
+        const data = [];
+        for (let result = await this.#get(endpoint, params); ; result = await this.#get(result.links.next)) {
+            data.push(...result[accumProp]);
+            if (result.links.next === null) break;
+        }
         return data;
     }
 
     /**
-     * @param {string} endpoint 
+     * @param {string} endpoint
+     * @param {{[param: string]: string | undefined}} params
      */
-    async #fetch(endpoint) {
+    async #get(endpoint, params = {}) {
+        const url = new URL(endpoint, this.baseUrl);
+        for (const [key, value] of Object.entries(params)) {
+            if (value !== undefined)
+                url.searchParams.append(key, value);
+        }
+
         const reqId = randomUUID()
-        log('[%s] Fetching from %s', reqId, this.url + endpoint);
-        const response = await fetch(this.url + endpoint);
+        log('[%s] Fetching from %s', reqId, url);
+        const response = await fetch(url);
 
         if (response.status !== 200)
             throw new AppError(`Failed to fetch data from Mirror Node (${response.status} ${response.statusText}): ${await response.text()}`);
 
         const value = await response.json();
-        log('[%s] Response data: %o', reqId, value);
+        log('[%s] Response data: %O', reqId, value);
         return value;
     }
-}
-
-/**
- * 
- * @param {{[param: string]: string | undefined}} params
- */
-function searchParams(params) {
-    const searchParams = new URLSearchParams();
-    for (const [key, value] of Object.entries(params)) {
-        if (value !== undefined) {
-            searchParams.append(key, value);
-        }
-    }
-    const queryString = searchParams.toString();
-    return queryString !== '' ? `?${queryString}` : '';
 }
 
 async function main() {
@@ -117,15 +108,15 @@ async function main() {
     if (positionals.length > 1)
         throw new AppError(`Too many positional arguments: ${positionals.slice(1).join(', ')}`);
 
-    const mirrorNodeClient = new MirrorNodeClient(mirrorNodeConfig[values.network] ?? values.network);
+    const mirrorNodeClient = new MirrorNodeClient(values.network);
 
     const timestamp = values.block !== undefined
-        ? (await mirrorNodeClient.fetchBlock(values.block)).timestamp.from
+        ? (await mirrorNodeClient.getBlock(values.block)).timestamp.from
         : undefined;
 
-    const state = await mirrorNodeClient.fetchContractState(contractAddress, timestamp);
+    const state = await mirrorNodeClient.getContractState(contractAddress, timestamp);
     if (state.length === 0)
-        throw new AppError(`No storage entries found for contract \`${contractAddress}\` on network ${mirrorNodeClient.url}`);
+        throw new AppError(`No storage entries found for contract \`${contractAddress}\` on network ${mirrorNodeClient.baseUrl}`);
 
     if (values.yul) {
         console.info(`// ${state.length} entries found`);

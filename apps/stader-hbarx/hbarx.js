@@ -3,6 +3,7 @@
 import { debuglog } from 'node:util';
 
 import * as sdk from '@hashgraph/sdk';
+
 import c from 'ansi-colors';
 
 const log = debuglog('hbarx');
@@ -22,7 +23,7 @@ async function main() {
     client.setOperator(operatorId, operatorKey);
 
     const treasuryAccountId = operatorId;
-    const transaction = new sdk.TokenCreateTransaction()
+    let transaction = new sdk.TokenCreateTransaction()
         .setTokenName("HBARx")
         .setTokenSymbol("HBARx")
         .setTreasuryAccountId(treasuryAccountId)
@@ -32,10 +33,11 @@ async function main() {
         // .setAdminKey(adminPublicKey)
         // .setMetadataKey(metadataKey)
         // .setMetadata(metadata)
-        .setMaxTransactionFee(new sdk.Hbar(30)) //Change the default max transaction fee
+        .setMaxTransactionFee(new sdk.Hbar(30))
         .freezeWith(client);
 
     //Sign the transaction with the token adminKey and the token treasury account private key
+    transaction = await transaction.sign(operatorKey);
     // const signTx =  await (await transaction.sign(adminKey)).sign(treasuryKey);
 
     //Sign the transaction with the client operator private key and submit to a Hedera network

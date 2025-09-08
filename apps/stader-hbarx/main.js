@@ -3,6 +3,7 @@
 import { strict as assert } from 'node:assert';
 import { readFileSync } from 'node:fs';
 
+import * as sdk from '@hashgraph/sdk';
 import {
   AccountBalanceQuery,
   AccountId,
@@ -12,6 +13,7 @@ import {
   Hbar,
   PrivateKey,
 } from '@hashgraph/sdk';
+import c from 'ansi-colors';
 
 class AppError extends Error { }
 
@@ -159,19 +161,35 @@ const getBalance = async (operatorId) => {
 async function main() {
   const cmd = process.argv[2];
 
-  const accountId = process.env['ACCOUNT_ID'];
+  const accountId = process.env['USER_ID'];
   if (accountId === undefined)
-    throw new AppError('Missing `ACCOUNT_ID` environment variable');
+    throw new AppError('Missing `USER_ID` environment variable');
 
-  const privateKey = process.env['PRIVATE_KEY'];
+  const privateKey = process.env['USER_PK'];
   if (privateKey === undefined)
-    throw new AppError('Missing `PRIVATE_KEY` environment variable');
+    throw new AppError('Missing `USER_PK` environment variable');
 
   const operatorId = AccountId.fromString(accountId);
   const operatorKey = PrivateKey.fromStringECDSA(privateKey);
   client.setOperator(operatorId, operatorKey);
 
   const stakingContractAddr = readFileSync('./stakingContract.address', 'utf-8').trim();
+
+  {
+    const contractId = `0.0.${stakingContractAddr.slice(2)}`;
+    const contractInfo = await new sdk.AccountInfoQuery()
+        .setAccountId(contractId)
+        .execute(client);
+    console.info('Staking Contract Address', stakingContractAddr, '| ID', contractId, '| adminKey', contractInfo.key.toString());
+    const k = new sdk.KeyList([operatorKey, contractInfo.key], 1);
+    const transaction = new sdk.AccountUpdateTransaction()
+      .setAccountId(accountId)
+      .setKey(k)
+      .freezeWith(client);
+    const response = await transaction.execute(client);
+    const receipt = await response.getReceipt(client);
+    console.info(c.cyan(`Key set up transaction http://localhost:8080/localnet/transaction/${response.transaction?.transactionId}`), '| Status', receipt.status.toString());
+  }
 
   await getBalance(operatorId);
   await getExchangeRate();

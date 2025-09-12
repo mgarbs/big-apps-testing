@@ -49,7 +49,7 @@ contract UniswapV2Factory is IUniswapV2Factory, SafeHederaTokenService {
         UniswapV2Pair(pair).initialize(token0, token1);
 
         uint256 feeInTinybars = tinycentsToTinybars(tokenCreateFee);
-        address lpToken = UniswapV2Pair(pair).createFungible{value: msg.value}();
+        address lpToken = UniswapV2Pair(pair).createFungible{value: feeInTinybars}();
 
         safeAssociateToken(address(this), lpToken); // address(this) is the burn address for MINIMUM_LIQUIDITY
 

@@ -63,17 +63,22 @@ describe("SaucerSwap Factory", function () {
     it("should create pair successfully with sufficient fee", async function () {
       const whbarToken = await whbar.token(); // WHBAR HTS token
       const testTokenAddr = await testToken.token(); // TestToken HTS token
-      console.log(addresses.factory)
-      await Utils.updateAccountKeysViaHapi([addresses.factory])
+      const salt = Utils.createSalt(whbarToken, testTokenAddr)
+
+      const INIT_CODE_PAIR_HASH = await factory.INIT_CODE_PAIR_HASH();
+      const create2Address = Utils.calculateCreate2Address(addresses.factory, salt, INIT_CODE_PAIR_HASH)
+      await Utils.updateAccountKeysViaHapi([addresses.factory, create2Address])
       const tx = await factory.createPair(whbarToken, testTokenAddr, {
         value: ethers.parseEther("60.0"),
         gasLimit: 8000000
       });
-      const receipt = await tx.wait();
 
+      await tx.wait();
       const pairAddress = await factory.getPair(whbarToken, testTokenAddr);
       expect(pairAddress).to.not.equal(ethers.ZeroAddress);
-      
+      expect(pairAddress).to.equal(create2Address)
+
+
       const reversePair = await factory.getPair(testTokenAddr, whbarToken);
       expect(reversePair).to.equal(pairAddress);
 
@@ -84,7 +89,7 @@ describe("SaucerSwap Factory", function () {
     it("should fail with insufficient pair creation fee", async function () {
       const whbarToken = await whbar.token();
       const testTokenAddr = await testToken.token();
-      
+
       await expect(
         factory.createPair(whbarToken, testTokenAddr, {
           value: ethers.parseEther("5") // Less than 10 HBAR minimum
@@ -115,10 +120,6 @@ describe("SaucerSwap Factory", function () {
     it("should fail to create duplicate pair", async function () {
       const whbarToken = await whbar.token();
       const testTokenAddr = await testToken.token();
-      
-      await factory.createPair(whbarToken, testTokenAddr, {
-        value: ethers.parseEther("60")
-      });
 
       await expect(
         factory.createPair(whbarToken, testTokenAddr, {
@@ -134,22 +135,35 @@ describe("SaucerSwap Factory", function () {
       // Deploy a third token for this test
       const TestTokenFactory = await ethers.getContractFactory("TokenCreateContract");
       const testTokenC = await TestTokenFactory.deploy({ 
-        value: ethers.parseEther("5.0"),
+        value: ethers.parseEther("10"),
         gasLimit: 3000000
       });
       await testTokenC.waitForDeployment();
       const tokenC = await testTokenC.token();
 
+      const salt1 = Utils.createSalt(whbarToken, testTokenAddr)
+      const salt2 = Utils.createSalt(whbarToken, tokenC)
+      const salt3 = Utils.createSalt(testTokenAddr, tokenC)
+
+      const INIT_CODE_PAIR_HASH = await factory.INIT_CODE_PAIR_HASH();
+      const pair1Address = Utils.calculateCreate2Address(addresses.factory, salt1, INIT_CODE_PAIR_HASH)
+      const pair2Address = Utils.calculateCreate2Address(addresses.factory, salt2, INIT_CODE_PAIR_HASH)
+      const pair3Address = Utils.calculateCreate2Address(addresses.factory, salt3, INIT_CODE_PAIR_HASH)
+      await Utils.updateAccountKeysViaHapi([addresses.factory, pair1Address, pair2Address, pair3Address])
+
       await factory.createPair(whbarToken, testTokenAddr, {
-        value: ethers.parseEther("60")
+        value: ethers.parseEther("60"),
+        gasLimit: 8000000
       });
 
       await factory.createPair(whbarToken, tokenC, {
-        value: ethers.parseEther("60")
+        value: ethers.parseEther("60"),
+        gasLimit: 8000000
       });
 
       await factory.createPair(testTokenAddr, tokenC, {
-        value: ethers.parseEther("60")
+        value: ethers.parseEther("60"),
+        gasLimit: 8000000
       });
 
       expect(await factory.allPairsLength()).to.equal(3);

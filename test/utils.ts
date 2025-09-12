@@ -148,8 +148,7 @@ export default class Utils {
         pkSigner.publicKey.toEvmAddress(),
         clientGenesis
       );
-      console.log(accountId)
-      console.log("....Creating SDK Client")
+  
       const clientSigner = await Utils.createSDKClient(accountId, pkSigner);
 
       const keyList = new KeyList(
@@ -161,7 +160,7 @@ export default class Utils {
         ],
         1
       );
-      console.log(keyList)
+
       try{ 
         
          const tx =  await new AccountUpdateTransaction()
@@ -170,12 +169,20 @@ export default class Utils {
             .freezeWith(clientSigner)
             .sign(pkSigner)
           const tx2 = await tx.execute(clientSigner)
-          const receipt = await tx2.getReceipt(clientSigner)
-          console.log(receipt)
+          await tx2.getReceipt(clientSigner)
       } catch(e) {
         console.log(e)
       }
       
     }
+  }
+
+  static createSalt(tokenA: string, tokenB: string): string {
+    return ethers.keccak256(ethers.solidityPacked(["address", "address"], [tokenA, tokenB]))
+  }
+
+  static calculateCreate2Address(address: string, salt: string, initCode: string) {
+    const pairAddress = ethers.getCreate2Address(address, salt, initCode)
+    return pairAddress;
   }
 }

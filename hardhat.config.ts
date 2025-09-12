@@ -7,6 +7,7 @@ import {
   OPERATOR_ID_A,
   OPERATOR_KEY_A,
   NETWORKS,
+  PRIVATE_KEYS
 } from './constants';
 
 const config: HardhatUserConfig = {
@@ -71,17 +72,17 @@ const config: HardhatUserConfig = {
   networks: {
     hederaTestnet: {
       url: process.env.HEDERA_TESTNET_RPC || "https://testnet.hashio.io/api",
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      accounts: PRIVATE_KEYS,
       chainId: 296,
     },
     hederaPreviewnet: {
       url: process.env.HEDERA_PREVIEWNET_RPC || "https://previewnet.hashio.io/api",
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      accounts: PRIVATE_KEYS,
       chainId: 297,
     },
     hederaLocalnet: {
       url: process.env.HEDERA_LOCALNET_RPC || "http://localhost:7546/",
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      accounts: PRIVATE_KEYS,
       chainId: 298,
       gas: 12000000,
       blockGasLimit: 15000000,

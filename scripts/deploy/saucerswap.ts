@@ -36,7 +36,7 @@ export class SaucerSwapDeployer extends Deployer {
     deployments.factory = await Factory.deploy(
       deployer.address,
       0, // pairCreateFee (unused - now using fixed HBAR amounts)
-      100,  // tokenCreateFee (unused - now using fixed HBAR amounts)
+      100000000 * 600,  // tokenCreateFee (unused - now using fixed HBAR amounts)
       {
         gasLimit: 5000000
       }

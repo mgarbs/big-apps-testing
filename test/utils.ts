@@ -23,7 +23,7 @@ export default class Utils {
    */
   static async createSDKClient(
     operatorId?: string,
-    operatorKey?: PrivateKey
+    operatorKey?: PrivateKey | string
   ): Promise<Client> {
     const network = hre.network.name;
     const sdkConfig = (hre.config.networks[network] as any).sdkClient;
@@ -184,5 +184,16 @@ export default class Utils {
   static calculateCreate2Address(address: string, salt: string, initCode: string) {
     const pairAddress = ethers.getCreate2Address(address, salt, initCode)
     return pairAddress;
+  }
+
+  static predictPair(tokenA: string, tokenB: string) {
+    
+  }
+  /**
+   * Pause execution for a given number of milliseconds.
+   * @param ms Milliseconds to delay
+   */
+  static async delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }

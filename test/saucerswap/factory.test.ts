@@ -24,6 +24,12 @@ describe("SaucerSwap Factory", function () {
   let whbarToken: any;
   let testTokenAddr: any;
 
+  /**
+   * Calculates create2 address for a pair
+   * @param tokenA address of tokenA
+   * @param tokenB address of tokenB
+   * @returns create2 address
+   */
   async function predictPair(tokenA: string, tokenB: string): Promise<string> {
     const hash = await factory.INIT_CODE_PAIR_HASH();
     const salt = Utils.createSalt(tokenA, tokenB);
@@ -108,7 +114,7 @@ describe("SaucerSwap Factory", function () {
 
       // Use callStatic to trigger the revert check without state changes
       await expect(
-        factory.callStatic.createPair(whbarToken, testToken3Address, TX_OPTS("2"))
+        factory.createPair(whbarToken, testToken3Address, TX_OPTS("2"))
       ).to.be.revertedWith("Did not send enough msg.value");
     });
 
@@ -131,7 +137,6 @@ describe("SaucerSwap Factory", function () {
     });
 
     it("should create multiple pairs", async function () {      
-      // Deploy a third token for this test
       const TestTokenFactory = await ethers.getContractFactory("TokenCreateContract");
       const testTokenC = await TestTokenFactory.deploy({ 
         value: ethers.parseEther("10"),

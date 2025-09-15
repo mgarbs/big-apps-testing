@@ -177,18 +177,28 @@ export default class Utils {
     }
   }
 
+  /**
+   * 
+   * @param tokenA tokenA address
+   * @param tokenB tokenB address
+   * @returns salt
+   */
   static createSalt(tokenA: string, tokenB: string): string {
     return ethers.keccak256(ethers.solidityPacked(["address", "address"], [tokenA, tokenB]))
   }
 
-  static calculateCreate2Address(address: string, salt: string, initCode: string) {
+  /**
+   * 
+   * @param address from address
+   * @param salt salt
+   * @param initCode init code hash
+   * @returns create2 address
+   */
+  static calculateCreate2Address(address: string, salt: string, initCode: string): string {
     const pairAddress = ethers.getCreate2Address(address, salt, initCode)
     return pairAddress;
   }
 
-  static predictPair(tokenA: string, tokenB: string) {
-    
-  }
   /**
    * Pause execution for a given number of milliseconds.
    * @param ms Milliseconds to delay

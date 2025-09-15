@@ -15,7 +15,13 @@ describe("SaucerSwap Factory", function () {
   let whbar: any;
   let addresses: any;
   let testToken: any; // TestToken contract for creating pairs with WHBAR
+  let TestTokenFactory: any;
 
+  async function predictPair(tokenA: string, tokenB: string) {
+    const hash = await factory.INIT_CODE_PAIR_HASH();
+    const salt = Utils.createSalt(tokenA, tokenB);
+    return Utils.calculateCreate2Address(addresses.factory, salt, hash);
+  }
 
   before(async function () {
     [deployer, user1, user2] = await ethers.getSigners();
@@ -33,7 +39,7 @@ describe("SaucerSwap Factory", function () {
     
     // Deploy TestToken for pairing with WHBAR
     console.log("Deploying TestToken...");
-    const TestTokenFactory = await ethers.getContractFactory("TokenCreateContract");
+    TestTokenFactory = await ethers.getContractFactory("TokenCreateContract");
     testToken = await TestTokenFactory.deploy({ 
       value: ethers.parseEther("10.0"),
       gasLimit: 8000000
@@ -63,10 +69,8 @@ describe("SaucerSwap Factory", function () {
     it("should create pair successfully with sufficient fee", async function () {
       const whbarToken = await whbar.token(); // WHBAR HTS token
       const testTokenAddr = await testToken.token(); // TestToken HTS token
-      const salt = Utils.createSalt(whbarToken, testTokenAddr)
-
-      const INIT_CODE_PAIR_HASH = await factory.INIT_CODE_PAIR_HASH();
-      const create2Address = Utils.calculateCreate2Address(addresses.factory, salt, INIT_CODE_PAIR_HASH)
+      
+      const create2Address = predictPair(whbarToken, testTokenAddr)
       await Utils.updateAccountKeysViaHapi([addresses.factory, create2Address])
       const tx = await factory.createPair(whbarToken, testTokenAddr, {
         value: ethers.parseEther("60.0"),
@@ -88,13 +92,19 @@ describe("SaucerSwap Factory", function () {
 
     it("should fail with insufficient pair creation fee", async function () {
       const whbarToken = await whbar.token();
-      const testTokenAddr = await testToken.token();
+      const testToken3 = await TestTokenFactory.deploy({ 
+        value: ethers.parseEther("10.0"),
+        gasLimit: 8000000
+      });
+      await testToken3.waitForDeployment()
+      const testToken3Address = await testToken3.token()
 
+      await factory.setPairCreateFee(100000000 * 200)
       await expect(
-        factory.createPair(whbarToken, testTokenAddr, {
+        factory.createPair(whbarToken, testToken3Address, {
           value: ethers.parseEther("5") // Less than 10 HBAR minimum
         })
-      ).to.be.revertedWith("UniswapV2: INSUFFICIENT_CREATION_FEE");
+      ).to.be.revertedWith("Did not send enough msg.value");
     });
 
     it("should fail to create pair with identical tokens", async function () {
@@ -141,14 +151,9 @@ describe("SaucerSwap Factory", function () {
       await testTokenC.waitForDeployment();
       const tokenC = await testTokenC.token();
 
-      const salt1 = Utils.createSalt(whbarToken, testTokenAddr)
-      const salt2 = Utils.createSalt(whbarToken, tokenC)
-      const salt3 = Utils.createSalt(testTokenAddr, tokenC)
-
-      const INIT_CODE_PAIR_HASH = await factory.INIT_CODE_PAIR_HASH();
-      const pair1Address = Utils.calculateCreate2Address(addresses.factory, salt1, INIT_CODE_PAIR_HASH)
-      const pair2Address = Utils.calculateCreate2Address(addresses.factory, salt2, INIT_CODE_PAIR_HASH)
-      const pair3Address = Utils.calculateCreate2Address(addresses.factory, salt3, INIT_CODE_PAIR_HASH)
+      const pair1Address = predictPair(whbarToken, testTokenAddr)
+      const pair2Address = predictPair(whbarToken, tokenC)
+      const pair3Address = predictPair(testTokenAddr, tokenC)
       await Utils.updateAccountKeysViaHapi([addresses.factory, pair1Address, pair2Address, pair3Address])
 
       await factory.createPair(whbarToken, testTokenAddr, {
@@ -181,6 +186,7 @@ describe("SaucerSwap Factory", function () {
   describe("Fee Management", function () {
     it("should allow fee setter to set feeTo", async function () {
       await factory.setFeeTo(user1.address);
+      await new Promise(resolve => setTimeout(resolve, 3000));
       expect(await factory.feeTo()).to.equal(user1.address);
     });
 
@@ -191,27 +197,27 @@ describe("SaucerSwap Factory", function () {
 
     it("should prevent non-fee setter from setting feeTo", async function () {
       await expect(
-        factory.connect(user1).setFeeTo(user2.address)
+        factory.connect(user2).setFeeTo(deployer.address)
       ).to.be.revertedWith("UniswapV2: FORBIDDEN");
     });
 
     it("should prevent non-fee setter from changing fee setter", async function () {
       await expect(
-        factory.connect(user1).setFeeToSetter(user2.address)
+        factory.connect(user2).setFeeToSetter(deployer.address)
       ).to.be.revertedWith("UniswapV2: FORBIDDEN");
     });
 
     it("should allow new fee setter to operate after transfer", async function () {
       // Transfer fee setter role
-      await factory.setFeeToSetter(user1.address);
-      
+      await factory.connect(user1).setFeeToSetter(user2.address);
+      await new Promise(resolve => setTimeout(resolve, 3000));
       // New fee setter should be able to set feeTo
-      await factory.connect(user1).setFeeTo(user2.address);
-      expect(await factory.feeTo()).to.equal(user2.address);
+      await factory.connect(user2).setFeeTo(deployer.address);
+      expect(await factory.feeTo()).to.equal(deployer.address);
       
       // Old fee setter should no longer have access
       await expect(
-        factory.setFeeTo(deployer.address)
+        factory.setFeeTo(user1.address)
       ).to.be.revertedWith("UniswapV2: FORBIDDEN");
     });
   });
@@ -219,17 +225,38 @@ describe("SaucerSwap Factory", function () {
   describe("Pair Address Calculation", function () {
     it("should calculate CREATE2 addresses correctly", async function () {
       const whbarToken = await whbar.token();
-      const testTokenAddr = await testToken.token();
-      
-      const predictedAddress = await factory.createPair.staticCall(whbarToken, testTokenAddr, {
-        value: ethers.parseEther("60")
+      const testToken2 = await TestTokenFactory.deploy({ 
+        value: ethers.parseEther("10.0"),
+        gasLimit: 8000000
+      });
+      await testToken2.waitForDeployment()
+      const testToken2Address = await testToken2.token()
+     
+      const create2Address = predictPair(whbarToken, testToken2Address)
+      await Utils.updateAccountKeysViaHapi([addresses.factory, create2Address])
+      const predictedAddress = await factory.createPair.staticCall(whbarToken, testToken2Address, {
+        value: ethers.parseEther("60"),
+        gasLimit: 8000000
       });
 
-      await factory.createPair(whbarToken, testTokenAddr, {
-        value: ethers.parseEther("60")
+     const tx = await factory.createPair(whbarToken, testToken2Address, {
+        value: ethers.parseEther("60"),
+        gasLimit: 8000000
       });
+      await tx.wait()
+      const pair = await factory.getPair(whbarToken, testToken2Address)
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
-      const actualAddress = await factory.getPair(whbarToken, testTokenAddr);
+      await expect(tx)
+        .to.emit(factory, "PairCreated")
+        .withArgs(
+          whbarToken,
+          testToken2Address,
+          pair,
+          1
+        );
+
+      const actualAddress = await factory.getPair(whbarToken, testToken2Address);
       expect(actualAddress).to.equal(predictedAddress);
     });
 
@@ -240,26 +267,6 @@ describe("SaucerSwap Factory", function () {
       
       const pairAddress = await factory.getPair(tokenA, tokenB);
       expect(pairAddress).to.equal(ethers.ZeroAddress);
-    });
-  });
-
-  describe("Factory Events", function () {
-    it("should emit PairCreated event with correct parameters", async function () {
-      const whbarToken = await whbar.token();
-      const testTokenAddr = await testToken.token();
-      
-      const tx = await factory.createPair(whbarToken, testTokenAddr, {
-        value: ethers.parseEther("60")
-      });
-
-      await expect(tx)
-        .to.emit(factory, "PairCreated")
-        .withArgs(
-          whbarToken < testTokenAddr ? whbarToken : testTokenAddr,
-          whbarToken < testTokenAddr ? testTokenAddr : whbarToken,
-          await factory.getPair(whbarToken, testTokenAddr),
-          1
-        );
     });
   });
 

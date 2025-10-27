@@ -35,10 +35,10 @@ export class SaucerSwapDeployer extends Deployer {
     const Factory = await ethers.getContractFactory("UniswapV2Factory");
     deployments.factory = await Factory.deploy(
       deployer.address,
-      0, // pairCreateFee (unused - now using fixed HBAR amounts)
-      100000000 * 600,  // tokenCreateFee (unused - now using fixed HBAR amounts)
+      100, // 1 USD worth of tinycents
+      200, // 2 USD worth of tinycents
       {
-        gasLimit: 5000000
+        gasLimit: 8000000
       }
     );
     await deployments.factory.waitForDeployment();

@@ -1,0 +1,7 @@
+/node_modules/
+
+# Generated Yul contract where dependency addresses are replaced
+/stakingContract.yul
+
+# Generated address files during deployment
+/*.address

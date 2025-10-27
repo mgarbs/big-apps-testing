@@ -44,6 +44,15 @@ DeFi applications that use the assets layer:
 - **Pool**: Uniswap V3 Pool contract
 - **PoolDeployer**: Deploys a pool
 
+### Bonzo
+
+Bonzo is included as a submodule to leverage their existing contracts and configuration to run the deployment scripts.
+
+- Runs deployment process for Bonzo contracts
+- Tests were skipped in upstream repo
+
+See main article on how to run [Bonzo](./apps/bonzo.md).
+
 ## Deployment
 
 ### Deploy Assets
